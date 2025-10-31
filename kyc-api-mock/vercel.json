@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "env": {
+    "API_KEY":"testxxxxxxxx"
+  },
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/verify",
+      "dest": "/api/verify.js"
+    }
+  ]
+}

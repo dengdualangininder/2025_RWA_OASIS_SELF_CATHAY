@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  kyc-oracle:
+    build: .
+    image: "ghcr.io/yourname/kyc-oracle:latest"
+    platform: linux/amd64
+    environment:
+      - CONTRACT_ADDRESS=${CONTRACT_ADDRESS}
+      - ROFL_PRIVATE_KEY=${ROFL_PRIVATE_KEY}
+      - KYC_API_KEY=${KYC_API_KEY}
+      - KYC_API_URL=${KYC_API_URL}
+      - SAPPHIRE_RPC_URL=${SAPPHIRE_RPC_URL:-https://testnet.sapphire.oasis.io}
+      - PORT=8080
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

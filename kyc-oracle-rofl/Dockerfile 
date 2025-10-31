@@ -1,0 +1,25 @@
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# 安裝 git (go mod 需要)
+RUN apk add --no-cache git
+
+# 複製依賴檔案
+COPY go.mod go.sum ./
+RUN go mod download
+
+# 複製源碼並編譯
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o kyc-oracle .
+
+# 最終映像
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /root/
+COPY --from=builder /app/kyc-oracle .
+
+EXPOSE 8080
+
+CMD ["./kyc-oracle"]

@@ -1,0 +1,33 @@
+name: kyc-oracle
+version: 0.1.0
+
+# TEE 類型
+tee: tdx  # 或 sgx
+
+# 應用類型
+kind: container
+
+# 資源配置
+resources:
+  memory: 2048  # MB
+  cpus: 2
+  storage:
+    kind: disk-persistent
+    size: 1024  # MB
+
+# 容器配置
+container:
+  compose: compose.yaml
+
+# 網路配置
+network: testnet  # 或 mainnet
+
+# 策略配置
+policy:
+  quotes: required
+  
+# 密鑰管理
+secrets:
+  - CONTRACT_ADDRESS
+  - ROFL_PRIVATE_KEY
+  - KYC_API_KEY

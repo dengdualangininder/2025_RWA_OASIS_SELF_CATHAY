@@ -1,0 +1,10 @@
+{
+  "name": "kyc-api-mock",
+  "version": "1.0.0",
+  "description": "Simple mock KYC API for testing",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {}
+}
