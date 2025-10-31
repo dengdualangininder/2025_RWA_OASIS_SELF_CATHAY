@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# 環境變數
+.env
+*.env
+!.env.example
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# 其他
+README.md
+*.md
+.DS_Store
