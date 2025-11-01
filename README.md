@@ -1,4 +1,4 @@
-# 不需信任的 KYC 預言機系統
+# KYC 預言機系統
 
 > 使用 ROFL (Runtime Off-chain Logic) 架構實現安全、隱私保護的鏈上身份驗證系統
 
