@@ -20,19 +20,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// CORS Middleware
-func enableCORS(w http.ResponseWriter, r *http.Request) bool {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-	
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
-		return true
-	}
-	return false
-}
-
 // KYC 請求結構
 type KYCRequest struct {
 	UserAddress  string `json:"user_address"`
@@ -42,34 +29,34 @@ type KYCRequest struct {
 
 // Self.xyz 驗證結果
 type SelfVerificationResult struct {
-	Verified       bool   `json:"verified"`
-	Nationality    string `json:"nationality"`
-	IsLocalResident bool  `json:"is_local_resident"`
-	Age            int    `json:"age"`
-	RiskScore      uint8  `json:"risk_score"`
+	Verified        bool   `json:"verified"`
+	Nationality     string `json:"nationality"`
+	IsLocalResident bool   `json:"is_local_resident"` // 是否本國人
+	Age             int    `json:"age"`
+	RiskScore       uint8  `json:"risk_score"`
 }
 
 // 傳統 KYC API 回應
 type TraditionalKYCResult struct {
-	Verified          bool   `json:"verified"`
-	CreditScore       int    `json:"credit_score"`
-	EmploymentStatus  string `json:"employment_status"`
-	AddressVerified   bool   `json:"address_verified"`
-	RiskScore         uint8  `json:"risk_score"`
+	Verified         bool   `json:"verified"`
+	CreditScore      int    `json:"credit_score"`
+	EmploymentStatus string `json:"employment_status"`
+	AddressVerified  bool   `json:"address_verified"`
+	RiskScore        uint8  `json:"risk_score"`
 }
 
 // 合併的驗證結果
 type CombinedKYCResult struct {
-	SelfVerified       bool
+	SelfVerified        bool
 	TraditionalVerified bool
-	FinalVerified      bool
-	TotalRiskScore     uint8
-	Nationality        string
-	IsLocalResident    bool
-	CreditScore        int
-	EmploymentStatus   string
-	AddressVerified    bool
-	VerificationMethod string
+	FinalVerified       bool
+	TotalRiskScore      uint8
+	Nationality         string
+	IsLocalResident     bool
+	CreditScore         int
+	EmploymentStatus    string
+	AddressVerified     bool
+	VerificationMethod  string
 }
 
 type KYCOracle struct {
@@ -83,7 +70,7 @@ type KYCOracle struct {
 
 func NewKYCOracle() (*KYCOracle, error) {
 	log.Println("=== Oasis ROFL 雙軌 KYC 驗證系統 ===")
-	
+
 	rpcURL := os.Getenv("SAPPHIRE_RPC_URL")
 	if rpcURL == "" {
 		rpcURL = "https://testnet.sapphire.oasis.io"
@@ -121,11 +108,14 @@ func NewKYCOracle() (*KYCOracle, error) {
 	return oracle, nil
 }
 
+// 呼叫 Self.xyz API (國籍驗證)
 func (o *KYCOracle) callSelfAPI(ctx context.Context, userAddress string) (*SelfVerificationResult, error) {
 	log.Printf("📱 [Self.xyz] 查詢國籍與身份資訊...")
 
+	// 這裡應該從你的資料庫查詢用戶的 Self 驗證結果
+	// 或者從 Self 的 callback 端點取得
 	url := fmt.Sprintf("%s/api/user-verification/%s", o.selfAPIURL, userAddress)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -153,6 +143,7 @@ func (o *KYCOracle) callSelfAPI(ctx context.Context, userAddress string) (*SelfV
 	return &result, nil
 }
 
+// 呼叫傳統 KYC API (信用、就業等)
 func (o *KYCOracle) callTraditionalKYCAPI(ctx context.Context, req KYCRequest) (*TraditionalKYCResult, error) {
 	log.Printf("🏦 [Traditional KYC] 查詢信用與就業資訊...")
 
@@ -188,33 +179,40 @@ func (o *KYCOracle) callTraditionalKYCAPI(ctx context.Context, req KYCRequest) (
 	return &result, nil
 }
 
+// 合併兩個驗證結果
 func (o *KYCOracle) combineResults(selfResult *SelfVerificationResult, traditionalResult *TraditionalKYCResult) *CombinedKYCResult {
 	log.Println("🔀 [合併結果] 計算總體風險分數...")
 
 	combined := &CombinedKYCResult{
-		SelfVerified:       selfResult.Verified,
+		SelfVerified:        selfResult.Verified,
 		TraditionalVerified: traditionalResult.Verified,
-		Nationality:        selfResult.Nationality,
-		IsLocalResident:    selfResult.IsLocalResident,
-		CreditScore:        traditionalResult.CreditScore,
-		EmploymentStatus:   traditionalResult.EmploymentStatus,
-		AddressVerified:    traditionalResult.AddressVerified,
+		Nationality:         selfResult.Nationality,
+		IsLocalResident:     selfResult.IsLocalResident,
+		CreditScore:         traditionalResult.CreditScore,
+		EmploymentStatus:    traditionalResult.EmploymentStatus,
+		AddressVerified:     traditionalResult.AddressVerified,
 	}
 
+	// 決定最終驗證狀態
 	combined.FinalVerified = selfResult.Verified && traditionalResult.Verified
 
+	// 計算總體風險分數 (加權平均)
+	// Self 佔 40%, Traditional KYC 佔 60%
 	totalRisk := (uint8(float64(selfResult.RiskScore)*0.4) + uint8(float64(traditionalResult.RiskScore)*0.6))
-	
+
+	// 本國人降低風險
 	if selfResult.IsLocalResident {
 		if totalRisk > 10 {
 			totalRisk -= 10
 		}
 	} else {
+		// 非本國人提高風險
 		totalRisk += 15
 	}
 
 	combined.TotalRiskScore = totalRisk
 
+	// 標記驗證方法
 	if selfResult.Verified && traditionalResult.Verified {
 		combined.VerificationMethod = "DUAL_VERIFIED"
 	} else if selfResult.Verified {
@@ -225,17 +223,19 @@ func (o *KYCOracle) combineResults(selfResult *SelfVerificationResult, tradition
 		combined.VerificationMethod = "UNVERIFIED"
 	}
 
-	log.Printf("📊 [合併結果] 最終驗證: %t, 總風險: %d, 方法: %s", 
+	log.Printf("📊 [合併結果] 最終驗證: %t, 總風險: %d, 方法: %s",
 		combined.FinalVerified, combined.TotalRiskScore, combined.VerificationMethod)
 
 	return combined
 }
 
+// 生成證明雜湊
 func (o *KYCOracle) generateProof(userAddr string, verified bool, riskScore uint8) [32]byte {
 	data := fmt.Sprintf("%s:%t:%d:%d", userAddr, verified, riskScore, time.Now().Unix())
 	return sha256.Sum256([]byte(data))
 }
 
+// 提交到鏈上
 func (o *KYCOracle) submitToChain(ctx context.Context, userAddr common.Address,
 	verified bool, riskScore uint8, proof [32]byte) error {
 
@@ -293,13 +293,16 @@ func (o *KYCOracle) submitToChain(ctx context.Context, userAddr common.Address,
 	return nil
 }
 
+// 處理 KYC 驗證請求（雙軌）
 func (o *KYCOracle) ProcessKYC(ctx context.Context, req KYCRequest) error {
 	log.Printf("🔍 [雙軌驗證] 開始處理: %s", req.UserAddress)
 
+	// 並行呼叫兩個 API
 	selfChan := make(chan *SelfVerificationResult)
 	traditionalChan := make(chan *TraditionalKYCResult)
 	errChan := make(chan error, 2)
 
+	// Goroutine 1: Self.xyz 驗證
 	go func() {
 		result, err := o.callSelfAPI(ctx, req.UserAddress)
 		if err != nil {
@@ -309,6 +312,7 @@ func (o *KYCOracle) ProcessKYC(ctx context.Context, req KYCRequest) error {
 		selfChan <- result
 	}()
 
+	// Goroutine 2: 傳統 KYC 驗證
 	go func() {
 		result, err := o.callTraditionalKYCAPI(ctx, req)
 		if err != nil {
@@ -318,6 +322,7 @@ func (o *KYCOracle) ProcessKYC(ctx context.Context, req KYCRequest) error {
 		traditionalChan <- result
 	}()
 
+	// 等待兩個結果
 	var selfResult *SelfVerificationResult
 	var traditionalResult *TraditionalKYCResult
 
@@ -334,8 +339,10 @@ func (o *KYCOracle) ProcessKYC(ctx context.Context, req KYCRequest) error {
 		}
 	}
 
+	// 合併結果
 	combined := o.combineResults(selfResult, traditionalResult)
 
+	// 提交到鏈上
 	userAddr := common.HexToAddress(req.UserAddress)
 	proof := o.generateProof(req.UserAddress, combined.FinalVerified, combined.TotalRiskScore)
 
@@ -348,12 +355,8 @@ func (o *KYCOracle) ProcessKYC(ctx context.Context, req KYCRequest) error {
 	return nil
 }
 
+// HTTP 處理器
 func (o *KYCOracle) handleVerify(w http.ResponseWriter, r *http.Request) {
-	// 處理 CORS
-	if enableCORS(w, r) {
-		return
-	}
-
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -384,17 +387,12 @@ func (o *KYCOracle) handleVerify(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *KYCOracle) handleHealth(w http.ResponseWriter, r *http.Request) {
-	// 處理 CORS
-	if enableCORS(w, r) {
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":   "healthy",
-		"service":  "kyc-oracle-rofl-dual",
-		"contract": o.contractAddress.Hex(),
-		"network":  "Oasis Sapphire Testnet",
+		"status":              "healthy",
+		"service":             "kyc-oracle-rofl-dual",
+		"contract":            o.contractAddress.Hex(),
+		"network":             "Oasis Sapphire Testnet",
 		"verification_method": "Self.xyz + Traditional KYC",
 	})
 }
@@ -426,7 +424,6 @@ func main() {
 	log.Println("✅ Self.xyz: 國籍、年齡、護照驗證")
 	log.Println("✅ Traditional KYC: 信用、就業、地址驗證")
 	log.Println("✅ 智能合併風險分數")
-	log.Println("✅ CORS 已啟用")
 	log.Println("====================")
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
