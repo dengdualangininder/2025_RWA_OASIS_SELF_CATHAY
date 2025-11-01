@@ -1,4 +1,3 @@
-```markdown
 # 不需信任的 KYC 預言機系統
 
 > 使用 ROFL (Runtime Off-chain Logic) 架構實現安全、隱私保護的鏈上身份驗證系統
@@ -585,14 +584,3 @@ modifier onlyROFL() {
 MIT License - 詳見 [LICENSE](LICENSE) 文件
 
 ---
-
-## 聯絡方式
-
-- **專案維護者**: [你的名字]
-- **Email**: your.email@example.com
-- **GitHub**: [@your-username](https://github.com/your-username)
-
----
-
-**⭐ 如果這個專案對你有幫助，請給個 Star！**
-```
