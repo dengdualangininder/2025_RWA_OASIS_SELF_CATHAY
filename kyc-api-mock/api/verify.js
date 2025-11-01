@@ -1,71 +1,82 @@
-// 超簡單的 KYC 驗證 API
 export default async function handler(req, res) {
-  // 只接受 POST 請求
+  // 設定 CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // 檢查 API Key (簡單驗證)
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  try {
+    const { user_address, document_id, document_type } = req.body;
 
-  const apiKey = authHeader.replace('Bearer ', '');
-  if (apiKey !== process.env.API_KEY) {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
+    if (!user_address || !document_id) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
 
-  // 取得請求參數
-  const { user_address, document_id, document_type } = req.body;
+    console.log('🏦 Traditional KYC API 驗證');
+    console.log('   用戶:', user_address);
+    console.log('   文件:', document_id);
 
-  // 簡單驗證
-  if (!user_address || !document_id || !document_type) {
-    return res.status(400).json({ 
-      error: 'Missing required fields',
-      required: ['user_address', 'document_id', 'document_type']
+    // 模擬信用評分（基於地址最後一位數字）
+    const lastChar = user_address.slice(-1).toLowerCase();
+    const baseScore = parseInt(lastChar, 16) * 50;
+    const creditScore = Math.min(baseScore + 300, 850);
+
+    // 模擬就業狀態
+    const employmentStatuses = ['employed', 'self_employed', 'unemployed', 'student'];
+    const employmentStatus = employmentStatuses[parseInt(lastChar, 16) % 4];
+
+    // 模擬地址驗證
+    const addressVerified = parseInt(lastChar, 16) > 5;
+
+    // 計算風險分數
+    let riskScore = 0;
+    
+    if (creditScore < 500) {
+      riskScore += 30;
+    } else if (creditScore < 650) {
+      riskScore += 15;
+    } else if (creditScore < 750) {
+      riskScore += 5;
+    }
+
+    if (employmentStatus === 'unemployed') {
+      riskScore += 25;
+    } else if (employmentStatus === 'student') {
+      riskScore += 10;
+    }
+
+    if (!addressVerified) {
+      riskScore += 20;
+    }
+
+    const result = {
+      verified: riskScore < 50,
+      credit_score: creditScore,
+      employment_status: employmentStatus,
+      address_verified: addressVerified,
+      risk_score: Math.min(riskScore, 100),
+      provider: 'MockKYC',
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log('✅ 驗證完成');
+    console.log('   信用分數:', result.credit_score);
+    console.log('   就業狀態:', result.employment_status);
+    console.log('   風險分數:', result.risk_score);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('❌ KYC API 錯誤:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
     });
   }
-
-  // 模擬 KYC 驗證邏輯
-  // 實際場景會呼叫真實的 KYC 服務 (Jumio, Onfido, Sumsub)
-  
-  // 簡單規則：
-  // - 如果 document_id 包含 "FAKE"，則驗證失敗，高風險
-  // - 如果 document_id 包含 "HIGH"，則驗證通過但高風險
-  // - 否則驗證通過，低風險
-  
-  let verified = true;
-  let riskScore = 10; // 預設低風險
-  let reason = 'Document verified successfully';
-
-  const docIdUpper = document_id.toUpperCase();
-  
-  if (docIdUpper.includes('FAKE')) {
-    verified = false;
-    riskScore = 95;
-    reason = 'Document appears to be fraudulent';
-  } else if (docIdUpper.includes('HIGH')) {
-    verified = true;
-    riskScore = 75;
-    reason = 'Document verified but flagged for review';
-  } else if (docIdUpper.includes('MEDIUM')) {
-    verified = true;
-    riskScore = 45;
-    reason = 'Document verified with moderate confidence';
-  }
-
-  // 模擬處理延遲
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  // 返回結果
-  return res.status(200).json({
-    verified,
-    risk_score: riskScore,
-    provider: 'mock-kyc-api',
-    reason,
-    timestamp: new Date().toISOString(),
-    user_address,
-    document_type
-  });
 }
