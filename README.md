@@ -122,13 +122,24 @@ test2_預言機線下KYC/
 
 ## 完整流程
 
+### 0. 模擬self驗證結果
+```bash
+curl -X POST http://localhost:3001/api/mock-verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_address": "0x37d8f4aC0b11D13Ab148bB9FF053F9C3379CfF2E",
+    "nationality": "TWN",
+    "age": 30
+  }'
+```
+
 ### 1. 用戶發起 KYC 請求
 
 ```bash
 curl -X POST http://localhost:8080/verify \
   -H "Content-Type: application/json" \
   -d '{
-    "user_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    "user_address": "0x37d8f4aC0b11D13Ab148bB9FF053F9C3379CfF2E",
     "document_id": "A123456789",
     "document_type": "passport"
   }'
