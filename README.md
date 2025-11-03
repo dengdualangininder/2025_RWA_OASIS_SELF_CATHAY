@@ -1,4 +1,5 @@
-# 去中心化雙軌 KYC 預言機系統 - 應用於Solasui團隊 『RWA股權抽籤平台』的國籍驗證&鏈下資產KYC
+# 去中心化雙軌 KYC 預言機系統 - 
+## 應用於Solasui團隊 『RWA股權抽籤平台』國籍驗證 & 鏈下資產KYC
 
 > 利用 Self.xyz 零知識證明與 Oasis Sapphire ROFL，實現金融級隱私保護、可驗證且高擴展的鏈上身份驗證解決方案
 
