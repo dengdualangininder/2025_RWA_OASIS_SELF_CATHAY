@@ -284,11 +284,9 @@ kycOracle.getKYCStatus(0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb)
 ---
 
 ## 📞 聯絡資訊
-
-- **專案網站**: [GitHub Repository]
 - **技術文檔**: 見下方完整版
-- **Demo 影片**: [YouTube]
-- **聯絡郵箱**: [your-email@example.com]
+- **Demo 影片**: 見附件video
+- **聯絡郵箱**: miragekaujau@gmail.com
 
 ---
 
